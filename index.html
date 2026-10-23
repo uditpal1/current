@@ -1,0 +1,274 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b1020">
+<title>Daily Current GK</title>
+
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#0b1020;--card:#131c30;--line:#293650;
+  --text:#f4f7ff;--muted:#a8b4ca;
+  --accent:#91a2ff;--green:#8ce2b0
+}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:Arial,"Noto Sans Devanagari",sans-serif;
+  line-height:1.6
+}
+.container{max-width:900px;margin:auto;padding:16px}
+.hero{
+  padding:25px 20px;border:1px solid var(--line);
+  border-radius:22px;
+  background:linear-gradient(135deg,#1b2a4b,#131a2c)
+}
+.tag{color:var(--accent);font-size:12px;font-weight:bold;letter-spacing:2px}
+h1{font-size:clamp(28px,6vw,42px);margin:8px 0}
+p{margin:6px 0}
+.muted{color:var(--muted)}
+.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+input,select{
+  width:100%;padding:13px;border-radius:12px;
+  border:1px solid var(--line);background:#111a2c;
+  color:white;font-size:15px
+}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.pill{background:var(--card);border:1px solid var(--line);
+  padding:6px 12px;border-radius:30px;font-size:13px;color:var(--muted)}
+button{
+  border:1px solid #52658c;background:#243451;color:white;
+  padding:10px 14px;border-radius:10px;font-size:14px;
+  font-weight:bold;cursor:pointer
+}
+button.primary{background:var(--accent);color:#10162a;border-color:var(--accent)}
+.actions{margin:14px 0;display:flex;gap:8px;flex-wrap:wrap}
+.question-list{display:grid;gap:14px}
+.qcard{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:18px;padding:17px
+}
+.qtop{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px}
+.qnumber{color:var(--accent);font-size:12px;font-weight:bold}
+.qdate{color:var(--muted);font-size:12px}
+.question{font-size:18px;font-weight:bold;margin:8px 0}
+.english{color:#c1cde2;margin-bottom:14px}
+.answer{
+  background:#10281f;border:1px solid #285840;
+  border-radius:12px;padding:12px;margin-top:10px
+}
+.answer-label{color:var(--green);font-size:12px;font-weight:bold}
+.answer-hi{font-size:17px;font-weight:bold;margin-top:4px}
+.answer-en{color:#c1e8d1}
+.explanation{font-size:14px;color:var(--muted);margin-top:12px}
+.card-actions{margin-top:13px}
+.empty{
+  text-align:center;padding:30px 16px;border:1px dashed var(--line);
+  border-radius:16px;color:var(--muted)
+}
+footer{text-align:center;color:var(--muted);font-size:12px;margin:25px 0}
+@media(max-width:550px){
+  .toolbar{grid-template-columns:1fr}
+  .hero{padding:20px 16px}
+  .qcard{padding:14px}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header class="hero">
+  <div class="tag">DAILY EXAM PRACTICE</div>
+  <h1>Daily Current GK</h1>
+  <p class="muted">Central Government aur sabhi State Exams ke liye.</p>
+  <p class="muted">Hindi + English Questions | Direct Answers</p>
+</header>
+
+<div class="toolbar">
+  <input id="search" type="search" placeholder="Question ya answer search karein...">
+  <select id="dateFilter">
+    <option value="all">All Dates / Saare Questions</option>
+  </select>
+</div>
+
+<div class="stats">
+  <span class="pill" id="count">Questions: 0</span>
+  <span class="pill" id="updated">Updated: —</span>
+</div>
+
+<div class="actions">
+  <button class="primary" id="copyAll">Copy All Questions</button>
+</div>
+
+<div id="questionList" class="question-list"></div>
+
+<footer>Daily Current GK · Hindi & English</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let allQuestions = [];
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  })[char]);
+}
+
+function formatDate(date) {
+  if (!date) return "Date not set";
+  const d = new Date(date + "T00:00:00");
+  return Number.isNaN(d.getTime())
+    ? date
+    : d.toLocaleDateString("en-IN", {
+        day:"2-digit", month:"short", year:"numeric"
+      });
+}
+
+function getVisibleQuestions() {
+  const term = $("search").value.trim().toLowerCase();
+  const selectedDate = $("dateFilter").value;
+
+  return allQuestions.filter(q => {
+    const matchesDate =
+      selectedDate === "all" || q.date === selectedDate;
+
+    const text = [
+      q.question_hi, q.question_en,
+      q.answer_hi, q.answer_en,
+      q.explanation_hi, q.explanation_en
+    ].join(" ").toLowerCase();
+
+    return matchesDate && text.includes(term);
+  });
+}
+
+function makeCopyText(q, index) {
+  return `${index + 1}. ${q.question_hi || ""}
+${q.question_en || ""}
+
+सही उत्तर: ${q.answer_hi || ""}
+Correct Answer: ${q.answer_en || ""}${
+    q.explanation_hi ? "\nव्याख्या: " + q.explanation_hi : ""
+  }${
+    q.explanation_en ? "\nExplanation: " + q.explanation_en : ""
+  }`;
+}
+
+function render() {
+  const items = getVisibleQuestions();
+
+  $("count").textContent = "Questions: " + items.length;
+
+  if (!items.length) {
+    $("questionList").innerHTML =
+      `<div class="empty">
+        Abhi koi question nahi mila.<br>
+        Questions ko questions.json file mein add karein.
+      </div>`;
+    return;
+  }
+
+  $("questionList").innerHTML = items.map((q, i) => `
+    <article class="qcard">
+      <div class="qtop">
+        <span class="qnumber">QUESTION ${String(i+1).padStart(2,"0")}</span>
+        <span class="qdate">${escapeHTML(formatDate(q.date))}</span>
+      </div>
+
+      <div class="question">${escapeHTML(q.question_hi)}</div>
+      <div class="english">${escapeHTML(q.question_en)}</div>
+
+      <div class="answer">
+        <div class="answer-label">CORRECT ANSWER / सही उत्तर</div>
+        <div class="answer-hi">${escapeHTML(q.answer_hi)}</div>
+        <div class="answer-en">${escapeHTML(q.answer_en)}</div>
+      </div>
+
+      ${(q.explanation_hi || q.explanation_en) ? `
+        <div class="explanation">
+          <b>Explanation / व्याख्या</b><br>
+          ${escapeHTML(q.explanation_hi)}<br>
+          ${escapeHTML(q.explanation_en)}
+        </div>` : ""}
+
+      <div class="card-actions">
+        <button data-index="${i}">Copy This Question</button>
+      </div>
+    </article>
+  `).join("");
+
+  $("questionList").querySelectorAll("[data-index]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const q = items[Number(btn.dataset.index)];
+      await copyText(makeCopyText(q, Number(btn.dataset.index)), btn);
+    });
+  });
+}
+
+async function copyText(text, button) {
+  try {
+    await navigator.clipboard.writeText(text);
+    const old = button.textContent;
+    button.textContent = "Copied ✓";
+    setTimeout(() => button.textContent = old, 1500);
+  } catch {
+    window.prompt("Text copy karein:", text);
+  }
+}
+
+async function loadQuestions() {
+  try {
+    const response = await fetch("./questions.json?v=" + Date.now());
+    if (!response.ok) throw new Error("JSON file load nahi hui");
+
+    const data = await response.json();
+    allQuestions = Array.isArray(data.questions) ? data.questions : [];
+
+    $("updated").textContent = "Updated: " + (data.updated_at || "—");
+
+    const dates = [...new Set(
+      allQuestions.map(q => q.date).filter(Boolean)
+    )].sort().reverse();
+
+    $("dateFilter").innerHTML =
+      '<option value="all">All Dates / Saare Questions</option>' +
+      dates.map(d =>
+        `<option value="${escapeHTML(d)}">${escapeHTML(formatDate(d))}</option>`
+      ).join("");
+
+    render();
+  } catch (error) {
+    $("questionList").innerHTML =
+      `<div class="empty">
+        questions.json load nahi hui.<br>
+        Dono files same folder mein rakhein aur JSON format check karein.
+      </div>`;
+  }
+}
+
+$("search").addEventListener("input", render);
+$("dateFilter").addEventListener("change", render);
+
+$("copyAll").addEventListener("click", async () => {
+  const items = getVisibleQuestions();
+
+  if (!items.length) {
+    alert("Copy karne ke liye questions nahi hain.");
+    return;
+  }
+
+  const text = items.map((q, i) => makeCopyText(q, i))
+    .join("\n\n--------------------\n\n");
+
+  await copyText(text, $("copyAll"));
+});
+
+loadQuestions();
+</script>
+</body>
+</html>
